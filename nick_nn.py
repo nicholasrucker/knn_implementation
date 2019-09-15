@@ -1,9 +1,21 @@
 import csv
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 import math
-from collections import Counter
+import itertools
+
+print("Enter a name for the input file:")
+fileName = input()
+
+predict = []
+while True:
+	print("Enter a value for body length and dorsal fin length: ")
+	firstValue, secondValue = float(input()), float(input())
+	
+	if firstValue == 0 and secondValue == 0:
+		break
+
+	predict.append([firstValue, secondValue])
 
 fileName = "FF74.txt"
 
@@ -25,7 +37,30 @@ fishDS = fishDS.sample(frac=1).reset_index(drop=True)
 # The values will be a list of pairs which represent the datapoints.
 fishMap = {}
 
+# Lets set up testing and training maps at the same time too
+testingData = {}
+trainingData = {}
+
+# Since the data is randomized every time we run the program we can just take
+# The first 20% of the values for testing and the rest for training
+
+trainingObs = fishDS.shape[0] // 5
+
+
 for index, row in fishDS.iterrows():
+	if trainingObs > 0:
+		if row[2] not in testingData.keys():
+			testingData[row[2]] = [[row[0], row[1]]]
+		else:
+			testingData[row[2]].append([row[0], row[1]])
+	else:
+		if row[2] not in trainingData.keys():
+			trainingData[row[2]] = [[row[0], row[1]]]
+		else:
+			trainingData[row[2]].append([row[0], row[1]])
+
+	trainingObs -= 1
+
 	if row[2] not in fishMap.keys():
 		fishMap[row[2]] = [[row[0], row[1]]]
 	else:
@@ -34,9 +69,7 @@ for index, row in fishDS.iterrows():
 	if row[2] == 1:
 		color = 'k'
 	plt.scatter(row[0], row[1], color = color)
-#plt.show()
-
-predict = [80, 7]
+#############################################plt.show()
 
 def knn(train, test, k_neighbors):
 	distances = []
@@ -50,37 +83,53 @@ def knn(train, test, k_neighbors):
 			distances.append([distance, category])
 
 	# We are throwing the decision logic into a loop in case there is a tie
-	while 1:
-		# We need to sort the distances because we care about the nearest neighbors
-		distances = sorted(distances)[:k_neighbors]
+	#while 1:
+	# We need to sort the distances because we care about the nearest neighbors
+	distances = sorted(distances)[:k_neighbors]
 
-		# And really we just need the group so lets turn the list of lists into a flat list
-		neighborList = [item for sublist in distances for item in sublist]
-		
-		cat0 = 0
-		cat1 = 0
+	# And really we just need the group so lets turn the list of lists into a flat list
+	neighborList = []
+	for item in distances:
+		neighborList.append(item[1])
+	
+	cat0 = 0
+	cat1 = 0
 
-		for result in neighborList:
-			if result == 0:
-				cat0 += 1
-			else:
-				cat1 += 1
-
-		if cat1 > cat0:
-			return 1
-		elif cat0 > cat1:
-			return 0
+	for result in neighborList:
+		if int(result) == 0:
+			cat0 += 1
 		else:
-			# If there is a tie and we can add a neighbor, we do
-			if len(train) - 3 > k_neighbors:
-				k_neighbors += 1
-			# If we cannot add a neighbor, we subtract one
-			else:
-				k_neighbors -= 1
+			cat1 += 1
 
+	if cat1 > cat0:
+		return 1
+	elif cat0 > cat1:
+		return 0
+	else:
+		# If there is a tie and we can add a neighbor, we do
+		if len(train) - 3 > k_neighbors:
+			k_neighbors += 1
+		# If we cannot add a neighbor, we subtract one
+		else:
+			k_neighbors -= 1
 
-print(knn(fishMap, predict, 3))
+# for item in predict:
+# 	print(knn(fishMap, item, 3))
+totalRight = 0
+totalNumber = 0
 
+for key, value in testingData.items():
+	for result in value:
+		predictedResult = knn(trainingData, result, 3)
 
+		print("predicted was:", predictedResult)
+		print("expected was:", int(key))
+		print("             ")
+
+		if predictedResult == int(key):
+			totalRight += 1
+		totalNumber += 1
+
+print("Accuracy is:", totalRight/totalNumber)
 
 
