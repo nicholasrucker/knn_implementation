@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import itertools
+import os
 
 print("\nEnter a name for the input file:")
 fileName = input()
@@ -20,6 +21,8 @@ inputFile.close()
 # Now lets create the data frame and shuffle the data so our test/training splits are random 
 fishDS = pd.read_csv(fileName.replace(".txt", ".csv"), header = None).dropna(inplace=False)
 fishDS = fishDS.sample(frac=1).reset_index(drop=True)
+
+os.remove(fileName.replace(".txt", ".csv"))
 
 # Lets normalize the data (Only columns 0 and 1 since 2 has our classification)
 cols_to_norm = [0,1]
